@@ -66,3 +66,11 @@ then you can view the HTML page here:
 Here is the link to my page:
 <a href="http://courserads-jis.github.io/PML_Course_Project/">http://courserads-jis.github.io/PML_Course_Project/</a>
 
+Here, I'm going to test compile some R.
+
+```{r}
+x <- 4
+y <- 5
+x + y
+```
+
