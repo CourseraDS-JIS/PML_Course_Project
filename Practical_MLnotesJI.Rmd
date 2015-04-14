@@ -1,0 +1,231 @@
+---
+title: "Practical Machine Learning"
+author: "Julie I. Santos"
+date: "Tuesday, April 07, 2015"
+output: html_document
+---
+
+## Table of Contents
+
+* [Assignment](#PA)
+* [Week 1](#Lectures1)
+* [Week 2](#Lectures2)
+* [Week 3](#Lectures3)
+* [Homeworks](#HW)
+
+<a id="PA">Peer Assessment:</a>
+
+###Write up
+
+**Background**
+
+In this project, your goal will be to use data from accelerometers on the belt, forearm, arm and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.  More information is available at: <a href="http://groupware.les.inf.puc-rio.br/har">here</a> (see the section on the Weight Lifting Exercise Dataset).
+
+**Data**
+
+The training data for this project are available here:
+
+<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a>
+
+The test data are available here:
+
+<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a>
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment. 
+
+**What you should submit**
+
+The goal of your project is to predict the manner in which they did the exercise.  This is the "classe" variable in the training set.  You may use any of the other variables to predict with. You should create a report describing
+
+* How you built your model
+* How you used cross validation
+* what you think the expected out of sample error is
+* and why you made the choices you did
+
+You will also use your prediction model to predict 20 different test cases.
+
+1.  Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to < 5.  It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online.
+2.  You should also apply your machine learning algorithm to the 20 test cases available in the test data above.  Please submit your predictions in appropriate format to the programming assignment for automated grading.
+
+**Reproducibility**
+
+Please be sure that if an evaluator downloads the repo, they will be able to view the compiled HTML version of your analysis.
+
+
+**Evaluation**
+
+1. Has the student submitted a github repo?
+2. Does the submission build a machine learning algorithm to predict activity quality from activity monitors? To evaluate the HTML file you may have to download the repo and open the compiled HTML document. Alternatively, if they have submitted a repo with a gh-pages branch, you may be able to view the HTML page on the web.  If the repo is:
+
+<a href="https://github.com/DataScienceSpecialization/courses/tree/master/08_PracticalMachineLearning/001predictionMotivation">https://github.com/DataScienceSpecialization/courses/tree/master/08_PracticalMachineLearning/001predictionMotivation</a>
+
+then you can view the HTML page here:
+
+<a href="http://datasciencespecialization.github.io/courses/08_PracticalMachineLearning/001predictionMotivation/">http://datasciencespecialization.github.io/courses/08_PracticalMachineLearning/001predictionMotivation/</a>
+
+Here is the link to my page:
+<a href="http://courserads-jis.github.io/PML_Course_Project/">http://courserads-jis.github.io/PML_Course_Project/</a>
+
+**REMEMBER**: When you push changes, you have to use *git push origin gh-pages*, not master.
+
+3.  Do the authors describe what they expect the out of sample error to be and estimate the error appropriately with cross-validation?
+
+4.  Please use the space below to provide constructive feedback...
+
+
+### Course Project: Submission instructions
+
+Please apply the machine learning algorithm you built to each of the 20 test cases in the testing data set.  For more information and instructions on how to build your model see the prediction assignment write-up. For each test case you should submit a text file with a single capital letter (A, B, C, D, or E) corresponding to your prediction for the corresponding problem in the test data set.  You get one point for each correct answer.   You may submit up to 2 times for each problem. It may be helpful to use the following function to create the files. If you have a character vector with your 20 predictions in order for the 20 problems, so something like:
+
+```{r eval=FALSE}
+answers <- rep("A",20)
+```
+
+then you can load this function by copying it and pasting it into R:
+
+```{r eval=FALSE}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+```
+
+then create a folder where you want the files to be written. Set that to be your working directory and run:
+
+```{r eval=FALSE}
+pml_write_files(answers)
+```
+
+and it will create one file for each submission. Note: if you use this script, please make sure the files that get written out have one character each with your prediction for the corresponding problem ID. I have noticed the script produces strange results if the answers variable is not a character vector.
+
+
+<a id="Lectures1">Week 1</a>
+
+Start with a question. i.e. can we predict whether an email is spam or not?
+
+Get some data. i.e. content of emails.
+
+Compress data into a set of features. i.e. count of word "your" in email.
+
+Feed features into an algorithm.
+i.e. if frequency of the word "your" > 0.5, label email as spam.
+
+###In Sample and Out of Sample Errors
+
+**In Sample Error**: The error rate you get on the same data set you used to build your predictor.  Also called *resubstitution error*.
+
+**Out of Sample Error**: The error rate you get on a new data set. Also called *gneralization error*.
+
+**Key ideas**
+
+1. Out of sample error is what you care about.
+2. In sample error < out of sample error
+3. The reason is overfitting
+    * Matching your algorithm to the data you have.
+  
+```{r}
+library(kernlab)
+data(spam)
+set.seed(333)
+smallSpam <-spam[sample(dim(spam)[1], size=10),]
+spamLabel <- (smallSpam$type=="spam")*1 + 1
+plot(smallSpam$capitalAve,col=spamLabel)
+```
+So, we're taking a small sample (10) of the data set and looking at the average number of capital letters.
+
+So, let's make a model:
+
+* It looks like if we set the threshold between 2.4 and 2.7, anything above 2.7 will be labeled "spam", anything below 3.4 "nonspam", we'll get most of the emails right.
+
+* But, to get them all right, let's add this caveat: if capitalAve falls between 2.4 and 2.45, it's "spam", if it's between 2.45 and 2.7 it's "non-spam".  That will predict our data perfectly (**perfect accuracy**).
+
+* It turns out that when you just apply the first rule and not the caveat to the full dataset, you get a better fit.  The reason is that you're fitting both signal and noise when you're going for perfect accuracy. 
+
+```{r}
+rule1 <- function(x) {
+  prediction <- rep(NA,length(x))
+  prediction[x > 2.7] <- "spam"
+  prediction[x < 2.4] <- "nospam"
+  prediction[( x >= 2.4 & x <=2.45)] <- "spam"
+  prediction[(x>2.45 & x <=2.70)] <- "nospam"
+  return(prediction)
+}
+table(rule1(smallSpam$capitalAve),smallSpam$type)
+
+rule2 <- function(x) {
+  prediction <- rep(NA,length(x))
+  prediction[x > 2.8] <- "spam"
+  prediction[x <= 2.8] <- "nospam"
+  return(prediction)
+}
+table(rule2(smallSpam$capitalAve),smallSpam$type)
+
+table(rule1(spam$capitalAve),spam$type)
+table(rule2(spam$capitalAve), spam$type)
+sum(rule1(spam$capitalAve)==spam$type)
+sum(rule2(spam$capitalAve)==spam$type)
+```
+
+Well those sums didn't give us what the slides did, but, anyway, the point is that the second rule, does better at predicting outcomes in the entire data set.
+
+### What's going on?
+
+<center style="color:red">Overfitting</center>
+
+* Data have two parts
+  
+    - Signal
+    
+    - Noise
+    
+* The goal of a predictor is to find the signal
+
+* You can always design a perfect in-sample predictor
+
+* You capture both the signal + noise when you do that
+
+* Predictor won't perform as well on new samples
+
+## Prediction Study Design
+
+*how to minimize the problems that can be caused by in sample vs. out of sample error rate.*
+
+1. Define your error rate 
+
+  You can use several different
+
+2. Split data into
+  
+  - Training, testing, and validation (optional)
+  
+3. On the training set, pick features
+
+  - Use cross-validation
+  
+4. On the training set, pick prediction function
+
+  - Use cross-validation
+  
+5. If no validation set
+
+  - Apply the best model 1x to test set (don't use the test set to train more)
+  
+6. If validation set and test set
+
+  - Apply to test set and refine
+  
+  - Apply 1x to validation set
+  
+  
+### Know the benchmarks
+
+They do this in Kaggle competitions. You'll see benchmark models that you can measure your model against.
+
+
+
+
+
+
