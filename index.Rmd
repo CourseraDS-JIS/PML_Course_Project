@@ -8,10 +8,8 @@ output: html_document
 ## Table of Contents
 
 * [Course Notes](Practical_MLnotesJI.html)
-* [Week 1](#Lectures1)
-* [Week 2](#Lectures2)
-* [Week 3](#Lectures3)
-* [Homeworks](#HW)
+* [Peer Assessment](#PA)
+
 
 <a id="PA">Peer Assessment:</a>
 

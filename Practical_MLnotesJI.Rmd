@@ -224,8 +224,242 @@ Well those sums didn't give us what the slides did, but, anyway, the point is th
 
 They do this in Kaggle competitions. You'll see benchmark models that you can measure your model against.
 
+## Avoid small samples
+
+They'll give you a false sense of accuracy.
+
+## Rules of thumb for prediction study design
+
+- If you have a large sample size
+  
+    - 60% training, 20% test, 20% validation
+    
+- If you have a medium sample size
+
+    - 60% training, 40% testing
+    
+- If you have a small sample size
+
+    - Do cross validation
+    
+    - Report caveat of small sample size
+    
+##  Principles to remember
+
+- Test/validation set should be set aside and never looked at.
+
+- In general, *randomly* sample training and test
+
+- Your data sets must reflect structure of the problem
+
+  - If predictions evolve with time, split train/test in time chunks (called *backtesting* in finance)
+  
+- All subsets should reflect as much diversity as possible
 
 
+  - Random assignment does this
+  
+  - You can try to balance by features, but this is tricky.
+
+## Types of Errors
+
+### Basic terms
+
+**For discrete data, or binary data, there are only two types of errors you can make: false positives and false negatives**
+
+True positive, true negative, false positive, false negative.
 
 
+**Sensitivity** : Pr(positive test | disease ) : TP / (TP + FN)
+
+**Specificity** : Pr(negative test | no disease) : TN / (FP + TN)
+
+**Positive predictive value** : Pr(disease | positive test) : TP / (TP + FP)
+
+**Negative predictive value** : Pr(no disease | negative test) : TN / (FN + TN)
+
+
+**Accuracy** : Pr( correct outcome ) : (TP + TN)/(TP + FP + FN + TN)
+
+
+## Continuous Data
+
+**For continuous data, the goal is to see how close you are to the truth**
+
+*Mean squared error (MSE)*
+
+$$ \frac{1}{n}\sum_{i=1}^{n} (Prediction_i - Truth_i)^2 $$
+
+the average distance between the prediction and truth.
+
+*Root mean squared error (RMSE)*
+
+$$ \sqrt{\frac{1}{n}\sum_{i=1}^{n} (Prediction_i - Truth_i)^2} $$
+
+These measures are sensitive to outliers.
+
+
+## Common error measures
+
+1.  Mean squared error and RMSE
+  
+  * Sensitive to outliers
+  
+2. Median absolute error
+
+  * More robust to outliers
+  
+3. Sensitivity
+  
+  * If you want few missed positives
+  
+4. Specificity
+
+  * If you want few negatives called positives
+  
+5. Accuracy
+
+  * Weights false positives/negatives equally
+  
+6. Concordance: for multi-class data, it's a distance measurement.
+
+  * One example is Kappa
+
+
+## ROC curves
+
+*Receiver Operating Characteristic* curves are a commonly used measure of the quality of a prediction algorithm.
+
+### Why a curve?
+
+In binary data, you often get quantitative data, that is the binary outcomes are expressed as probabilities of success vs. probability of failure.  The cutoff you choose will give different results and have different properties.
+
+ROC curves plot on the x-axis 1-specificity, or the probability of a false positive. On the y-axis the sensitivity or probability of a true positive.
+
+![ROC curve](P1.PNG)
+
+So, every point on the curve is a different choice of cutoff. So, you would plot several ROC curves for each algorithm you test and compare.    
+
+![ROC curve](P2.PNG)
+
+Calculate the area under the curve to assess which algorithm is better.
+
+###Area under the curve (AUC)
+
+* If the area under the curve equals 0.5 (45 degree line), that's as good as random guessing.
+
+* If the area is 1, that's a perfect classifier.
+
+* In general, if the AUC is > 0.8, we consider this to be a good classifier.
+
+The closer you are to the top left of the plot, the better the algorithm.
+
+##Cross validation
+
+This is used to help you minimize overfitting to the training set.
+
+*Approach*
+
+1. Take the training set
+
+2. Split it into training/test sets
+
+3. Build a model on the training set
+
+4. Evaluate on the test set
+
+5. Repeat and average the estimated errors
+
+*Used for*
+
+1. Picking variables to include in a model
+
+2. Picking the type of prediction function to use
+
+3. Picking the parameters in the prediction function
+
+4. Comparing different predictors.
+
+You can split the training set up into sub-training test sets by random subsampling, K-fold cross-validation, Leave one out
+
+##Considerations
+
+* For time series data, the samples must be in chunks (autocorrelation)
+
+* For k-fold cross validation
+
+  - Larger k = less bias, more variance (will depend a lot on which subsample you use)
+  
+  - Smaller k = more bias, less variance
+  
+* Random sampling must be done *without replacement*
+
+* Random sampling with replacement is called *bootstrap*
+
+  - Underestimates the error (some samples will appear more than once and if you get the prediction right for one, you get it right for the duplicated one)
+  
+  - Can be corrected but it's complicated (0.632 Bootstrap)
+  
+* If you cross-validate to pick predictors, you must estimate errors on independent data.
+
+##What data should you use?
+
+As often as possible, use like data to predict like and when you're using data that isn't related, be very careful about interpreting why your algorithm works or doesn't work.
+
+
+<a id="Lectures2">Week 2</a>
+
+##The caret package
+
+###Caret functionality
+
+* Some preprocessing and cleaning
+
+  - preProcess
+  
+* Data splitting
+
+  - createDataPartition
+  
+  - createResample
+  
+  - createTimeSlices
+  
+* Training/testing functions
+
+  - train
+  
+  - predict
+  
+* Model comparison
+
+  - confusionMatrix
+  
+###Machine learning algorithms in R
+ 
+* Linear discriminant analysis
+
+* Regression
+
+* Naive Bayes
+
+* Support vector machines
+
+* Classification and regression trees
+
+* Random forests
+
+* Boosting
+
+* etc.
+
+## Example of Data Splitting
+
+```{r}
+library(caret); library(kernlab); data(spam)
+inTrain <- createDataPartition(y=spam$type, p = 0.75, list=FALSE)
+training <- spam[inTrain,]
+testing <- spam[-inTrain,]
+dim(training)
+```
 
