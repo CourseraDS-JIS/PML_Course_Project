@@ -467,6 +467,72 @@ training &lt;- spam[inTrain,]
 testing &lt;- spam[-inTrain,]
 dim(training)</code></pre>
 <pre><code>## [1] 3451   58</code></pre>
+<div id="cross-validation-1" class="section level3">
+<h3>Cross-validation</h3>
+<p>Split the training set into subsets</p>
+<pre class="r"><code>set.seed(32323)
+folds &lt;- createFolds(y=spam$type, k=10, list=TRUE, returnTrain=TRUE)
+
+sapply(folds,length)</code></pre>
+<pre><code>## Fold01 Fold02 Fold03 Fold04 Fold05 Fold06 Fold07 Fold08 Fold09 Fold10 
+##   4141   4140   4141   4142   4140   4142   4141   4141   4140   4141</code></pre>
+<pre class="r"><code>folds[[1]][1:10] # the fold seems to be a list of numerics corresponding to the indices that will be in that fold</code></pre>
+<pre><code>##  [1]  1  2  3  4  5  6  7  8  9 10</code></pre>
+<p>So, then you would probably use <em>folds[[x]]</em> to subset the original data.</p>
+</div>
+<div id="resampling" class="section level3">
+<h3>Resampling</h3>
+<p>This is with replacement, so bootstrap.</p>
+<pre class="r"><code>set.seed(32323)
+folds &lt;- createResample(y=spam$type, times=10, list=TRUE)
+sapply(folds, length)</code></pre>
+<pre><code>## Resample01 Resample02 Resample03 Resample04 Resample05 Resample06 
+##       4601       4601       4601       4601       4601       4601 
+## Resample07 Resample08 Resample09 Resample10 
+##       4601       4601       4601       4601</code></pre>
+<pre class="r"><code>folds[[1]][1:10]</code></pre>
+<pre><code>##  [1]  1  2  3  3  3  5  5  7  8 12</code></pre>
+</div>
+<div id="time-slices" class="section level3">
+<h3>Time slices</h3>
+<pre class="r"><code>set.seed(32323)
+tme &lt;- 1:1000 # this is basically the vector that you're creating the slices on.
+folds &lt;- createTimeSlices(y=tme, initialWindow=20, horizon=10)
+names(folds)</code></pre>
+<pre><code>## [1] &quot;train&quot; &quot;test&quot;</code></pre>
+<pre class="r"><code>folds$train[[1]]</code></pre>
+<pre><code>##  [1]  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20</code></pre>
+<pre class="r"><code>folds$test[[1]]</code></pre>
+<pre><code>##  [1] 21 22 23 24 25 26 27 28 29 30</code></pre>
+</div>
+</div>
+<div id="training-options" class="section level2">
+<h2>Training Options</h2>
+<pre class="r"><code>library(caret); library(kernlab); data(spam)
+inTrain &lt;- createDataPartition(y=spam$type, p=0.75, list=FALSE)
+
+training &lt;- spam[inTrain, ]
+testing &lt;- spam[-inTrain, ]
+modelFit &lt;- train(type ~.,data=training, method=&quot;glm&quot;)
+args(train.default)</code></pre>
+<pre><code>## function (x, y, method = &quot;rf&quot;, preProcess = NULL, ..., weights = NULL, 
+##     metric = ifelse(is.factor(y), &quot;Accuracy&quot;, &quot;RMSE&quot;), maximize = ifelse(metric == 
+##         &quot;RMSE&quot;, FALSE, TRUE), trControl = trainControl(), tuneGrid = NULL, 
+##     tuneLength = 3) 
+## NULL</code></pre>
+<div id="metric-options" class="section level3">
+<h3>Metric Options</h3>
+<p><strong>Continuous outcomes</strong></p>
+<ul>
+<li><p><em>RMSE</em>: Root Mean Squared Error</p></li>
+<li><p><em><span class="math">\(R^2\)</span></em>: measure of linear aggreement between the variables you’re predicting and the variables you predict with (not great if you’re doing non-linear things)</p></li>
+</ul>
+<p><strong>Categorical Outcomes</strong></p>
+<ul>
+<li><p><em>Accuracy</em>: fraction correctly predicted</p></li>
+<li><p><em>Kappa</em>: a measure of concordance</p></li>
+</ul>
+</div>
 </div>
 
 

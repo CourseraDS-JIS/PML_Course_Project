@@ -463,3 +463,65 @@ testing <- spam[-inTrain,]
 dim(training)
 ```
 
+### Cross-validation
+
+Split the training set into subsets
+
+```{r}
+set.seed(32323)
+folds <- createFolds(y=spam$type, k=10, list=TRUE, returnTrain=TRUE)
+
+sapply(folds,length)
+folds[[1]][1:10] # the fold seems to be a list of numerics corresponding to the indices that will be in that fold
+```
+
+So, then you would probably use *folds[[x]]* to subset the original data.
+
+### Resampling
+
+This is with replacement, so bootstrap.
+
+```{r}
+set.seed(32323)
+folds <- createResample(y=spam$type, times=10, list=TRUE)
+sapply(folds, length)
+folds[[1]][1:10]
+```
+
+### Time slices
+
+```{r}
+set.seed(32323)
+tme <- 1:1000 # this is basically the vector that you're creating the slices on.
+folds <- createTimeSlices(y=tme, initialWindow=20, horizon=10)
+names(folds)
+folds$train[[1]]
+folds$test[[1]]
+```
+
+## Training Options
+
+```{r warning=FALSE}
+library(caret); library(kernlab); data(spam)
+inTrain <- createDataPartition(y=spam$type, p=0.75, list=FALSE)
+
+training <- spam[inTrain, ]
+testing <- spam[-inTrain, ]
+modelFit <- train(type ~.,data=training, method="glm")
+args(train.default)
+```
+
+### Metric Options
+
+**Continuous outcomes**
+
+* *RMSE*: Root Mean Squared Error
+
+* *$R^2$*: measure of linear aggreement between the variables you're predicting and the variables you predict with (not great if you're doing non-linear things)
+
+**Categorical Outcomes**
+
+* *Accuracy*: fraction correctly predicted
+
+* *Kappa*: a measure of concordance
+
