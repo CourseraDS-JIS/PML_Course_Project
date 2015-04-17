@@ -525,3 +525,89 @@ args(train.default)
 
 * *Kappa*: a measure of concordance
 
+```{r}
+args(trainControl)
+```
+
+### trainControl resampling
+
+* *method*
+
+  - boot = bootstrapping
+  
+  - boot632 = bootstrapping with adjustment
+  
+  - cv = cross validation
+  
+  - repeated cv = repeated cross validation
+  
+  - LOOCV = leave one out cross validation
+  
+* *number*
+
+  - For boot/cross validation
+  
+  - Number of subsamples to take
+  
+* *repeats*
+
+  - Number of times to repeat subsampling
+  
+  - If large, this can *slow thing down*
+  
+
+## Plotting Predictors
+
+### Example: predicting wages
+
+```{r}
+library(ISLR); library(ggplot2); library(caret)
+
+data(Wage)
+summary(Wage)
+inTrain <- createDataPartition(y=Wage$wage, p=0.7, list=FALSE)
+training <- Wage[inTrain,]
+testing <- Wage[-inTrain,]
+dim(training);dim(testing)
+```
+
+### Feature plot, from the caret package
+```{r}
+featurePlot(x=training[,c("age","education","jobclass")], y= training$wage, plot="pairs")
+qplot(age,wage,data=training)
+```
+
+There is something weird going on between age and wage as evidenced by the band on top. So, let's color the types of job classes.
+
+```{r}
+qplot(age,wage,colour=jobclass, data=training)
+```
+
+So, that seems to be coming mostly from the information based jobs as opposed to the industrial-based jobs.
+
+###Add regression smoothers, from ggplot2 package
+
+```{r}
+qq <- qplot(age, wage, colour=education, data=training)
+qq + geom_smooth(method='lm', formula=y~x)
+```
+
+###cut2, making factors from the Hmisc package
+
+You might want to split the wage variable into different categories
+
+```{r warning=FALSE, message=FALSE}
+library(Hmisc)
+cutWage <- cut2(training$wage, g=3)
+table(cutWage)
+```
+
+This breaks the dataset up into factors based on the quantile groups. Above, we told cut2 that we want 3 groups.  This can be used to make different kinds of plots.
+
+```{r}
+library(gridExtra)
+p1 <- qplot(cutWage, age, data=training, fill=cutWage, geom=c("boxplot"))
+p2 <- qplot(cutWage,age,data=training,fill=cutWage, geom=c("boxplot","jitter"))
+grid.arrange(p1,p2,ncol=2)
+```
+
