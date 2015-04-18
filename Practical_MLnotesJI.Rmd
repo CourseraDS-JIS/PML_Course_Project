@@ -611,3 +611,118 @@ p2 <- qplot(cutWage,age,data=training,fill=cutWage, geom=c("boxplot","jitter"))
 grid.arrange(p1,p2,ncol=2)
 ```
 
+###Tables
+
+To make a table of wage brackets by job class:
+
+```{r}
+t1 <- table(cutWage, training$jobclass)
+t1
+prop.table(t1,1)
+```
+
+If you pass prop.table to number 1, it gives the proportion across rows, 2, proportions across columns.
+
+###Density plots
+
+```{r}
+qplot(wage,colour=education, data=training, geom="density")
+```
+
+##Preprocessing Predictors
+
+More useful when you're using model-based approaches than when you're using non-parametric approaches.
+
+###Why preprocess?
+
+```{r}
+data(spam)
+inTrain <- createDataPartition(y=spam$type, p=0.75, list=FALSE)
+training <- spam[inTrain,]
+testing <- spam[-inTrain,]
+hist(training$capitalAve,main="",xlab="avg. capital run length")
+```
+
+So, this variable is very skewed. How skewed?
+
+```{r}
+mean(training$capitalAve)
+sd(training$capitalAve)
+```
+
+The standard deviation is very large. Much larger than the mean. 
+
+##Standardizing
+
+Take the value, subtract the mean and divide by standard deviation to make mean zero and standard deviation 1.
+
+```{r}
+trainCapAve <- training$capitalAve
+testCapAve <- testing$capitalAve
+testCapAveS <- (testCapAve - mean(trainCapAve))/sd(trainCapAve)
+mean(testCapAveS)
+sd(testCapAveS)
+```
+
+**Note**: You standardize the *test* data by subtracting and dividing by the *training mean and standard deviation*!!!
+
+###Standardizing - *preProcess* function
+
+the *preProcess* function can be used to standardize all the data.
+
+```{r}
+preObj <- preProcess(training[,-58],method=c("center","scale"))
+trainCapAveS <- predict(preObj, training[,-58])$capitalAve
+mean(trainCapAveS)
+sd(trainCapAveS)
+```
+
+Then you can apply the same preprocessing on the test set:
+
+```{r}
+testCapAveS <- predict(preObj,testing[,-58])$capitalAve
+mean(testCapAveS)
+sd(testCapAveS)
+```
+
+Or you can send *preProcess* as an argument to the *train* function.
+
+```{r warning=FALSE}
+set.seed(32343)
+modelFit <- train(type~.,data=training,preProcess=c("center","scale"),method="glm")
+modelFit
+```
+
+###Standardizing - Box-Cox transforms
+
+*Box-Cox transforms* take continuous data and try to make them look like normal data by estimating a specific set of parameters using maximum likelihood.
+
+```{r}
+preObj <- preProcess(training[,-58], method=c("BoxCox"))
+trainCapAveS <- predict(preObj, training[,-58])$capitalAve
+par(mfrow=c(1,2));hist(trainCapAveS);qqnorm(trainCapAveS)
+```
+
+This doesn't take care of all the problems, as can be seen in the plots above.  In the histogram, there's a large bar close to zero.  In the Q-Q plot, we don't get a really nice 45 degree line. This is because, if you have a bunch of values that are exactly equal to zero, this is a continuous transformation and it doesn't take care of values that are repeated.
+
+###Standardizing - Imputing Data
+
+If you have missing data, your prediction algorithm is likely to fail. So, maybe use *K-nearest neighbors* imputation.
+
+```{r}
+set.seed(13343)
+
+#Make some values NA
+training$capAve <- training$capitalAve
+selectNA <- rbinom(dim(training)[1],size=1,prob=0.05)==1
+training$capAve[selectNA] <- NA
+
+#Impute and standardize
+preObj <- preProcess(training[,-58],method="knnImpute")
+capAve <- predict(preObj,training[,-58])$capAve
+
+#Standardize true values
+capAveTruth <- training$capitalAve
+capAveTruth <- (capAveTruth-mean(capAveTruth))/sd(capAveTruth)
+```
+
