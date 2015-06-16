@@ -11,6 +11,7 @@ output: html_document
 * [Week 1](#Lectures1)
 * [Week 2](#Lectures2)
 * [Week 3](#Lectures3)
+* [Quizzes](#Quizzes)
 * [Homeworks](#HW)
 
 <a id="PA">Peer Assessment:</a>
@@ -1159,6 +1160,8 @@ qplot(wage, pred, data=testing)
 
 ###Measures of impurity
 
+m: leaf, k: class
+
 $$ \hat{p}_{mk} = \frac{1}{N_m} \sum_{x_i in leaf m} I(y_i = k) $$
 
 **Misclassification Error**
@@ -1167,3 +1170,172 @@ $$ 1- \hat{p}_{mk(m)} //
 k(m) = most.common.k
 $$
 
+0: no misclassification error (perfect purity)
+
+0.5: no purity
+
+**Gini index**
+
+$$ \sum_{k\ne k'} \hat{p}_{mk} x \hat{p}_{mk'} = \sum_{k=1}^K \hat{p}_{mk} (1-\hat{p}_{mk}) = 1 - \sum_{k=1}^K p_{mk}^2 $$
+
+0: no misclassification error (perfect purity)
+
+0.5: no purity
+
+**Deviance/Information Gain**
+
+$$ - \sum_{k=1}^K \hat{p}_{mk} log_2\hat{p}_{mk} $$
+
+0: perfect purity
+
+1: no purity
+
+If log is in base $e$, it's deviance.  If base $2$, it's Information Gain.
+
+
+![Measures of Impurity](P3.PNG)
+
+So, each box represents a leaf.  In the first box, 15 were classified correctly, 1 was classified incorrectly.  In the second box, 8 were classified correctly and 8 were classified incorrectly.
+
+###Example: Iris Data
+
+```{r}
+data(iris)
+names(iris)
+table(iris$Species)
+```
+
+####Create training and test sets
+
+```{r}
+inTrain <- createDataPartition(y=iris$Species, p=0.7, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,]
+dim(training);dim(testing)
+qplot(Petal.Width, Sepal.Width, colour=Species, data=training)
+modFit <- train(Species ~., method="rpart",data=training)
+print(modFit$finalModel)
+```
+
+
+```{r}
+plot(modFit$finalModel, uniform=TRUE, main="Classification Tree")
+library(rattle)
+fancyRpartPlot(modFit$finalModel)
+```
+
+###Predicting new values
+
+```{r}
+predict(modFit,newdata=testing)
+```
+
+###Notes and further resources
+
+* Classification trees are non-linear models
+
+  - They use interactions between variables
+  
+  - Data transformations are not so important (especially ones that maintain the order of the data, monotone transformations)
+  
+  - Trees can also be used for continuous outcomes
+  
+* There are multiple tree building options in R in the caret packages: **party**, **rpart** and **tree** (tree is not in the caret package)
+
+* See Intro to statistical learning and elements of statistical learning
+
+##Bagging
+
+Short for *bootstrap aggregating*. A model averaging technique.
+
+**Basic idea**
+
+1. Resample cases with replacement and recalculate predictions
+
+2. Take an average or majority vote
+
+**Notes**
+
+* Similar Bias
+
+* But, reduced variance
+
+* More useful for non-linear functions
+
+```{r}
+library(ElemStatLearn); data(ozone, package="ElemStatLearn")
+ozone <- ozone[order(ozone$ozone),]
+head(ozone)
+```
+
+Try to predict temperature as a function of ozone.
+
+###Bagged Loess
+
+```{r}
+ll <- matrix(NA, nrow=10,ncol=155)
+for(i in 1:10){
+  ss <- sample(1:dim(ozone)[1], replace=T) #sample from the data set with replacement
+  ozone0 <- ozone[ss,]; ozone0 <- ozone0[order(ozone0$ozone),] #create a new dataset on the sample, reorder by ozone
+  loess0 <- loess(temperature ~ ozone, data=ozone0,span=0.2) # fitting a loess curve, very similar to spline model fits that we saw with linear regression, span measures how smooth the fit will be
+  ll[i,] <- predict(loess0, newdata=data.frame(ozone=1:155)) #then save the predicted values for averaging later
+}
+ plot(ozone$ozone, ozone$temperature, pch=19, cex=0.5)
+  for(i in 1:10){lines(1:155, ll[i,],col="grey",lwd=2)}
+  lines(1:155, apply(ll,2,mean),col="red",lwd=2)
+```
+
+Red is the average loess curve.
+
+###Bagging in caret
+
+* Some models perform bagging for you, in the **train** function, there are method options:
+
+  - bagEarth
+  
+  - treeBag
+  
+  - bagFDA
+  
+* Alternatively you can bag any model you choose using the **bag** function.
+
+```{r}
+predictors <- data.frame(ozone=ozone$ozone)
+temperature <- ozone$temperature
+treebag <- bag(predictors, temperature, B= 10, 
+               bagControl=bagControl(fit=ctreeBag$fit,
+               predict=ctreeBag$pred,
+               aggregate=ctreeBag$aggregate))
+```
+
+**bag** function: B is the number of subsamples you want to take. bagControl describes how to fit the model. ctree fits a conditional regression tree.
+
+```{r}
+ctreeBag$fit
+```
+
+So, now when we plot:
+
+```{r}
+plot(ozone$ozone, temperature, col='lightgrey', pch=19)
+points(ozone$ozone, predict(treebag$fits[[1]]$fit, predictors),pch=19,col="red")
+points(ozone$ozone, predict(treebag,predictors),pch=19,col="blue")
+```
+
+###Notes and Further Resources
+
+* Bagging is most useful for nonlinear models
+
+* Often used with trees, an extension is random forests
+
+* Several models use bagging in caret's *train* function
+
+* See *Elements of Statistical Learning*
+
+Stopped at end of Bagging
+
+<a id="#Quizzes">Quiz Answers</a>
+
+###Quiz 1
+
+Which
