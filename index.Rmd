@@ -1,74 +1,115 @@
 ---
-title: "Practical Machine Learning"
-author: "Julie I. Santos"
-date: "Tuesday, April 07, 2015"
-output: html_document
+title: "Practical Machine Learning: Peer Assessment"
+author: "Santos"
 ---
-
-## Table of Contents
-
-* [Course Notes](Practical_MLnotesJI.html)
-* [Peer Assessment](#PA)
-
-
-<a id="PA">Peer Assessment:</a>
-
-###Write up
-
-**Background**
-
-In this project, your goal will be to use data from accelerometers on the belt, forearm, arm and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.  More information is available at: <a href="http://groupware.les.inf.puc-rio.br/har">here</a> (see the section on the Weight Lifting Exercise Dataset).
-
-**Data**
-
-The training data for this project are available here:
-
-<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a>
-
-The test data are available here:
-
-<a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a>
-
-The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment. 
-
-**What you should submit**
-
-The goal of your project is to predict the manner in which they did the exercise.  This is the "classe" variable in the training set.  You may use any of the other variables to predict with. You should create a report describing
-
-* How you built your model
-* How you used cross validation
-* what you think the expected out of sample error is
-* and why you made the choices you did
-
-You will also use your prediction model to predict 20 different test cases.
-
-1.  Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to < 5.  It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online.
-2.  You should also apply your machine learning algorithm to the 20 test cases available in the test data above.  Please submit your predictions in appropriate format to the programming assignment for automated grading.
-
-**Reproducibility**
-
-Please be sure that if an evaluator downloads the repo, they will be able to view the compiled HTML version of your analysis.
-
-
-**Evaluation**
-
-1. Has the student submitted a github repo?
-2. Does the submission build a machine learning algorithm to predict activity quality from activity monitors? To evaluate the HTML file you may have to download the repo and open the compiled HTML document. Alternatively, if they have submitted a repo with a gh-pages branch, you may be able to view the HTML page on the web.  If the repo is:
-
-<a href="https://github.com/DataScienceSpecialization/courses/tree/master/08_PracticalMachineLearning/001predictionMotivation">https://github.com/DataScienceSpecialization/courses/tree/master/08_PracticalMachineLearning/001predictionMotivation</a>
-
-then you can view the HTML page here:
-
-<a href="http://datasciencespecialization.github.io/courses/08_PracticalMachineLearning/001predictionMotivation/">http://datasciencespecialization.github.io/courses/08_PracticalMachineLearning/001predictionMotivation/</a>
-
-Here is the link to my page:
-<a href="http://courserads-jis.github.io/PML_Course_Project/">http://courserads-jis.github.io/PML_Course_Project/</a>
-
-Here, I'm going to test compile some R.
-
-```{r}
-x <- 4
-y <- 5
-x + y
+```{r echo=FALSE}
+knitr::opts_chunk$set(cache=TRUE, message=FALSE)
 ```
 
+```{r echo=FALSE}
+library(dplyr)
+library(caret)
+
+require(parallel)  
+require(doParallel)  
+theCluster <- makeCluster(detectCores())
+registerDoParallel(theCluster)
+```
+## Predicting Barbell Lifts
+
+* [The Code](CourseProjectCode.R)
+
+
+###Summary
+
+The goal of this project was to use data from accelerometers on 6 different individuals to predict the way in which individuals performed barbell lifts. The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. Data was collected from six individuals.
+
+
+###Cleaning The Data
+
+Here's a summary of the data:
+```{r echo=FALSE}
+setwd("C:/Users/julie/Desktop/Data Science Coursera/PML/CourseProject")
+training <- read.csv("pml-training.csv", na.strings=c("NA","","#DIV/0!"))
+testing <- read.csv("pml-testing.csv", na.strings=c("NA","","#DIV/0!"))
+
+glimpse(training)
+```
+
+It's clear that several features may have an abnormally high number of missing values. I removed the variables that contained over 90% NA values.
+
+```{r}
+## remove columns that have lots of NAs
+na_count <- sapply(training, function(y) sum(length(which(is.na(y)))))
+training2 <- training[,na_count<0.9]
+```
+
+Then, there were a few variables, indexes and timestamps, that also seemed unnecessary.
+
+```{r}
+## remove other columns that don't seem to matter
+dropvars <- c("X","raw_timestamp_part_1","raw_timestamp_part_2","cvtd_timestamp","num_window")
+training2 <- select(training2, -one_of(dropvars))
+```
+
+So, to develop a model, I partitioned the test set into 60% training and 40% testing sets.  I then set up the parameters for cross-validation to perform 5-fold cross-validation.
+
+```{r}
+## Partition the data set
+set.seed(333)
+trainIndex <- createDataPartition(training2$classe, p=0.6, list=FALSE)
+trainSet <- training2[trainIndex,]
+testSet <- training2[-trainIndex,]
+tCtrl <- trainControl(method="cv", number=5, allowParallel=TRUE)
+```
+
+
+###Analysis
+
+In order to get a feel for which features would have the most impact on the outcome, I made a CART classification tree.
+
+```{r}
+## Make a tree to explore the importance of the features
+library(rpart)
+library(ggplot2)
+treeModel <- rpart(classe ~ ., data=trainSet, method="class")
+library(rpart.plot)
+prp(treeModel)
+```
+
+As can be seen, the roll-belt feature has a strong influence on predicting Class E, and that pitch_forearm has a strong influence on predicting Class A, and so on.
+
+So, then, I made a random forest model with 5-fold cross-validation.  I expected that roll-belt and pitch_forearm would be important predictors in this case. The details of the cross-validation procedure are outlined below.
+
+
+```{r}
+
+model.1 <- train(classe~., data=trainSet, method="rf", trControl = tCtrl)
+model.1
+```
+
+
+```{r}
+model.1$finalModel
+```
+
+The out-of-bag estimate of classification error is 0.93%.  That's pretty good!
+
+```{r}
+varImp(model.1)
+
+```
+
+The variance Importance values support the initial CART in that roll belt and pitch forearm are the most important variables.
+
+I then predict on the 40% hold-out set.
+
+```{r}
+validate <- predict(model.1,testSet)
+confusionMatrix(validate,testSet$classe)
+```
+
+
+###Conclusion
+
+The predicted out-of-sample accuracy is 99.3%.  This model predicted the test data with 100% accuracy.  The random forest model with no pre-processing proved effective at predicting classifications of barbell lifting exercises.

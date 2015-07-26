@@ -71,6 +71,8 @@ Here is the link to my page:
 
 3.  Do the authors describe what they expect the out of sample error to be and estimate the error appropriately with cross-validation?
 
+See this video: <a href="https://www.youtube.com/watch?v=3p9JNaJCOb4&list=PL5-da3qGB5IB-Xdpj_uXJpLGiRfv9UVXI">Statistical Learning Videos: Cross-validation Error Estimate</a>
+
 4.  Please use the space below to provide constructive feedback...
 
 
@@ -132,6 +134,7 @@ library(kernlab)
 data(spam)
 set.seed(333)
 smallSpam <-spam[sample(dim(spam)[1], size=10),]
+## Multiplying by 1 converts boolean to int, then add 1 to get 1 and 2
 spamLabel <- (smallSpam$type=="spam")*1 + 1
 plot(smallSpam$capitalAve,col=spamLabel)
 ```
